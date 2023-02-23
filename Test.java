@@ -1,37 +1,49 @@
-package practica2.Protocol;
+package practica5;
 
-import practica1.Protocol.SimNet_Queue;
-import practica1.Protocol.TSocketRecv;
-import practica1.Protocol.TSocketSend;
+import util.SimNet_FullDuplex;
+import practica4.Protocol;
+import util.Const;
 import util.Receiver;
 import util.Sender;
-import util.TCPSegment;
 import util.SimNet;
 
 public class Test {
 
-  public static void main(String[] args) throws InterruptedException {
-    
-    TCPSegment.SHOW_DATA = true;
-    
-    SimNet net        = new SimNet_Monitor();
-    Sender sender     = new Sender(new TSocketSend(net), 10, 1, 100);
-    Receiver receiver = new Receiver(new TSocketRecv(net), 1, 200);
-    
-    //Completar (trobar una manera que demostri que la xarxa utilitzada no funciona bé per aquest cas)
-  
-        Thread s= new Thread(sender);
-        Thread r= new Thread(receiver);
-        
-        s.start();
-        r.start();
-        
-        try{
-            s.join();
-        }catch (InterruptedException ex) { }
-        
-        try{
-            r.join();
-        }catch (InterruptedException ex) { }  
+  public static void main(String[] args) {
+
+    SimNet_FullDuplex net = new SimNet_FullDuplex(Const.LOSS_RATE_PSH, Const.LOSS_RATE_ACK);
+
+    new Thread(new HostSnd(net.getSndEnd())).start();
+    new Thread(new HostRcv(net.getRcvEnd())).start();
+  }
+}
+
+class HostSnd implements Runnable {
+
+  public static final int PORT = 10;
+
+  protected Protocol proto;
+
+  public HostSnd(SimNet net) {
+    this.proto = new Protocol(net);
+  }
+
+  public void run() {
+    new Sender(new TSocket(proto, HostSnd.PORT, HostRcv.PORT)).start();
+  }
+}
+
+class HostRcv implements Runnable {
+
+  public static final int PORT = 80;
+
+  protected Protocol proto;
+
+  public HostRcv(SimNet net) {
+    this.proto = new Protocol(net);
+  }
+
+  public void run() {
+    new Receiver(new TSocket(proto, HostRcv.PORT, HostSnd.PORT)).start();
   }
 }
